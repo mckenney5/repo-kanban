@@ -1,0 +1,85 @@
+.TH KANBAN 1 "2026-05-13" "rkb" "User Commands"
+.SH NAME
+rkb \- repository-level kanban board for AI agents
+.SH SYNOPSIS
+.B rkb build
+\fIcommand\fR [\fIoptions\fR]
+.br
+.B rkb plan
+\fIcommand\fR [\fIoptions\fR]
+.SH DESCRIPTION
+\fBrkb\fR manages a kanban board stored in \fI.kanban-board\fR at the
+repository root. It is designed for AI agents to break complex tasks
+into tickets and track their progress.
+.PP
+The \fBbuild\fR subcommands mutate the board file. The \fBplan\fR
+subcommands are read-only and output JSON to stdout.
+.SH BUILD COMMANDS
+.TP
+.B init
+Create the board file if it does not exist. No-op if present.
+.TP
+.B add --title \fIstr\fR [options]
+Add a new ticket to the backlog. Options:
+.RS
+.TP
+.B \-\-description \fIstr\fR
+Full description or acceptance criteria.
+.TP
+.B \-\-priority \fIn\fR
+Priority level (1\(en5).
+.TP
+.B \-\-assignee \fIstr\fR
+Name of the assigned agent.
+.TP
+.B \-\-tags \fIa,b,c\fR
+Comma-separated list of tags.
+.TP
+.B \-\-blocked-by \fI1,2\fR
+Comma-separated ticket IDs this ticket depends on.
+.RE
+.TP
+.B move \fIid\fR \fIstatus\fR
+Change a ticket\(cqs status. Warns if blocked tickets are not done.
+.TP
+.B edit \fIid\fR \fIfield\fR \fIvalue\fR
+Modify a ticket field (e.g. title, assignee, priority).
+.TP
+.B rm \fIid\fR
+Remove a ticket from the board.
+.TP
+.B archive-done
+Move all tickets with status \fBdone\fR to \fBarchive\fR.
+.SH PLAN COMMANDS
+.TP
+.B list [\-\-pretty]
+List all tickets as JSON (or as a table with \-\-pretty).
+.TP
+.B show \fIid\fR [\-\-pretty]
+Show a single ticket as JSON.
+.TP
+.B stats [\-\-pretty]
+Show ticket counts per column, blocked count, and unassigned count.
+.TP
+.B export
+Dump the raw board file to stdout.
+.SH COLUMNS
+backlog, ready, in-progress, QA, done, archive
+.SH EXIT STATUS
+.TP
+0
+Success.
+.TP
+1
+Usage error or bad argument (missing --title, invalid status).
+.TP
+2
+Board file error (not found, invalid JSON, I/O failure).
+.TP
+3
+Ticket id not found.
+.SH FILES
+.I .kanban-board
+JSON file in the repository root. Add to .gitignore.
+.SH AUTHOR
+rkb authors
