@@ -105,6 +105,7 @@ Each ticket in the `tickets` array follows this schema:
   - Fixed-size buffers, linear scans
   - Single pass to understand the whole program
   - No frameworks, no bloat
+
 See [Suckless Coding Style](https://suckless.org/coding_style/)
 
 ## Testing
