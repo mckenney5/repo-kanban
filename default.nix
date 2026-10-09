@@ -2,9 +2,14 @@
 
 pkgs.stdenv.mkDerivation rec {
   pname = "rkb";
-  version = "1.0.0-local";
+  version = "1.0.0";
 
-  src = pkgs.lib.cleanSource ./.;
+  src = pkgs.fetchgit {
+    url = https://github.com/mckenney5/repo-kanban.git;
+    rev = "refs/heads/main";
+    fetchSubmodules = true;
+    sha256 = "sha256-9gYPVIDZkYtwZ6XoaZRtmUKFoIHPi2KCPlEk5no2U3o=";
+  };
 
   makeFlags = [ "PREFIX=$(out)" ];
 
@@ -12,6 +17,8 @@ pkgs.stdenv.mkDerivation rec {
 
   meta = with pkgs.lib; {
     description = "Local CLI Kanban board for Agents";
+    homepage = https://github.com/mckenney5/repo-kanban;
+    license = licenses.mit;
     platforms = platforms.linux;
   };
 }
