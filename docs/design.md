@@ -75,7 +75,8 @@ Single JSON file at `./.kanban-board`:
 | `rkb build init` | Create board file if missing (no-op otherwise) |
 | `rkb build add --title "..." [--description] [--priority N] [--assignee] [--tags a,b] [--blocked-by 1,3]` | Add ticket to backlog |
 | `rkb build move <id> <status>` | Change ticket status (warns if blocked) |
-| `rkb build edit <id> <field> <value>` | Modify a ticket field |
+| `rkb build edit <id> <field> <value>` | Append to a ticket field (`description`, `tags`, `blocked_by`) |
+| `rkb build overwrite <id> <field> <value>` | Replace a ticket field; `""` clears it |
 | `rkb build rm <id>` | Delete a ticket |
 | `rkb build archive-done` | Move all `done` tickets to `archive` |
 
@@ -83,10 +84,14 @@ Single JSON file at `./.kanban-board`:
 
 | Command | Description |
 |---|---|
-| `rkb plan list [--status <col>] [--pretty]` | List tickets, optionally filtered by column |
-| `rkb plan show <id> [--pretty]` | Show full ticket details |
-| `rkb plan stats [--pretty]` | Column counts and summary |
+| `rkb plan list [--pretty]` | List all tickets as JSON (or a table with `--pretty`) |
+| `rkb plan show <id>` | Show full ticket details as JSON |
+| `rkb plan stats` | Column counts and summary |
+| `rkb plan lint [--json]` | Report board problems (read-only; exit 1 if issues found) |
 | `rkb plan export` | Dump the entire board as JSON |
+
+Note: `--pretty` is a table renderer, not a filter. Column filtering is left to `jq`:
+`rkb plan list | jq '[.tickets[] | select(.status == "ready")]'`.
 
 ## Code Style
 

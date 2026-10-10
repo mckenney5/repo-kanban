@@ -17,9 +17,11 @@ subcommands are read-only and output JSON to stdout.
 .SH BUILD COMMANDS
 .TP
 .B init
-Create the board file if it does not exist. No-op if present.
+Create the board file if it does not exist. If it already exists it is
+validated rather than overwritten: an existing board that cannot be read
+is reported and the command exits non-zero.
 .TP
-.B add --title \fIstr\fR [options]
+.B add \-\-title \fIstr\fR [options]
 Add a new ticket to the backlog. Options:
 .RS
 .TP
@@ -27,7 +29,8 @@ Add a new ticket to the backlog. Options:
 Full description or acceptance criteria.
 .TP
 .B \-\-priority \fIn\fR
-Priority level (1\(en5).
+Priority level (1\(en5). Enforced: a value outside 1\(en5, or one
+that is not a number, is rejected and no ticket is created.
 .TP
 .B \-\-assignee \fIstr\fR
 Name of the assigned agent.
@@ -36,14 +39,41 @@ Name of the assigned agent.
 Comma-separated list of tags.
 .TP
 .B \-\-blocked-by \fI1,2\fR
-Comma-separated ticket IDs this ticket depends on.
+Comma-separated ticket IDs this ticket depends on. Each ID must be a
+positive number; a token that is not is rejected and nothing is
+written, rather than being skipped. Ids that do not exist yet are
+accepted, since dependencies may point forward.
 .RE
+.PP
+The assigned id comes from \fBnext_id\fR, which increases monotonically
+and is never reused. \fBrkb build rm\fR does not decrement it, so ids
+have gaps once tickets are deleted; that is expected and not a sign of
+lost data. Ids must stay stable because surviving tickets hold
+\fBblocked_by\fR references to them.
 .TP
 .B move \fIid\fR \fIstatus\fR
 Change a ticket\(cqs status. Warns if blocked tickets are not done.
 .TP
 .B edit \fIid\fR \fIfield\fR \fIvalue\fR
-Modify a ticket field (e.g. title, assignee, priority).
+Append to a ticket field without discarding what is already there.
+Appends a new line to \fBdescription\fR, and adds only missing elements to
+\fBtags\fR and \fBblocked_by\fR. An append that adds nothing prints
+"ok (no change)" and still exits 0.
+.RS
+.PP
+\fBtitle\fR, \fBassignee\fR and \fBpriority\fR hold a single value, so
+\fBedit\fR refuses them. Use
+.B overwrite
+for those. To clear any field, use
+.BI overwrite " " id " " field " \(dq\(dq"
+.RE
+.TP
+.B overwrite \fIid\fR \fIfield\fR \fIvalue\fR
+Replace a ticket field\(cqs value outright. Pass an empty value,
+.BR \(dq\(dq ,
+to clear it. Every field
+.B edit
+accepts is accepted here too, and this is the only way to clear one.
 .TP
 .B rm \fIid\fR
 Remove a ticket from the board.
@@ -61,23 +91,60 @@ Show a single ticket as JSON.
 .B stats [\-\-pretty]
 Show ticket counts per column, blocked count, and unassigned count.
 .TP
+.B lint [\-\-json]
+Check the board for problems and report them. Read\-only: the board is
+never modified. Exits 1 when issues are found.
+.TP
 .B export
 Dump the raw board file to stdout.
 .SH COLUMNS
 backlog, ready, in-progress, QA, done, archive
+.SH BOARD LINT
+.B rkb plan lint
+checks the board for problems that no other command reports, because every
+read path looks up fields by name and so cannot see a field it does not
+know. It reports unknown and duplicate ticket keys, missing required
+fields, wrong field types, a status that is not a board column, duplicate
+ticket ids, dependencies on tickets that do not exist, and board-level
+problems such as a missing
+.B next_id
+or a column list that does not match this build.
+.PP
+Lint never modifies the board. To repair one, dump it with
+.B rkb plan export
+and edit the JSON directly; which of two contradictory values should win
+is not something a tool should guess.
 .SH EXIT STATUS
 .TP
 0
 Success.
 .TP
 1
-Usage error or bad argument (missing --title, invalid status).
+Usage error or bad argument (missing --title, invalid status), or
+.BR "plan lint"
+found issues.
 .TP
 2
 Board file error (not found, invalid JSON, I/O failure).
 .TP
 3
 Ticket id not found.
+.SH CONCURRENCY
+Saves are atomic: the board is written to a uniquely named temporary
+file, fsync'd, then renamed over the board, so a reader never sees a
+half-written file and an interrupted save cannot corrupt it.
+.PP
+Locking is
+.B not
+provided. Two
+.B build
+commands mutating the same board at the same time is unsupported: both
+read the board before either writes, the last rename wins, and the
+ticket from the slower process is lost even though it printed
+.BR ok .
+Run one
+.B rkb
+command at a time per repository.
 .SH FILES
 .I .kanban-board
 JSON file in the repository root. Add to .gitignore.

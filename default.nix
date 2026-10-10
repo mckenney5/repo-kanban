@@ -2,7 +2,7 @@
 
 pkgs.stdenv.mkDerivation rec {
   pname = "rkb";
-  version = "1.0.0";
+  version = "2.0.0";
 
   src = pkgs.fetchgit {
     url = https://github.com/mckenney5/repo-kanban.git;
