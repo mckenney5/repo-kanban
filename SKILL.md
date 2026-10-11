@@ -30,15 +30,34 @@ rkb plan  <cmd>   # READ-ONLY, emits JSON to stdout — use to inspect
     # pull a sub-task into ready
 
 6.  ... work on ticket 2 ...
-    rkb build move 2 done
-    # mark complete
 
-7.  rkb build archive-done
+7.  rkb build move 2 QA
+    # required hand-off — "done" is refused until the ticket has been in QA
+
+8.  rkb build move 2 done
+    # succeeds only after step 7
+
+9.  rkb build archive-done
     # sweep done tickets to archive
 ```
 
 ## Guidelines
 
+- **Every ticket must stop in `QA` before it can be marked done.** `rkb
+  build move <id> done` and `rkb build move <id> archive` are **refused**
+  — exit 1 — unless the ticket is in `QA` right now:
+  ```bash
+  rkb build move 4 ready
+  rkb build move 4 done     # Error: ticket 4 must be in 'QA' before moving to 'done'
+  rkb build move 4 QA       # the hand-off that unblocks completion
+  rkb build move 4 done     # succeeds now
+  ```
+  This is deliberate, and the error says so too — it ends by telling you to
+  ask the user rather than work around it. Finishing a ticket is not yours
+  alone to decide: the stop in `QA` is where another agent or a person
+  reviews the work before it is called done. If a ticket is finished, move
+  it to `QA` and stop there. Do not go looking for a way to mark it done
+  directly.
 - **One ticket, one concern.** If a ticket needs sub-steps, create
   dependent tickets with `--blocked-by` rather than writing paragraphs.
 - **Use `--priority` to signal order.** 1 = urgent, 5 = nice-to-have.
@@ -58,8 +77,10 @@ rkb plan  <cmd>   # READ-ONLY, emits JSON to stdout — use to inspect
 - **Blocked-by is advisory.** `rkb build move` warns if a blocking
   ticket isn't done but lets the move succeed — use judgment.
 - **Ids in `--blocked-by` must be real numbers.** `2,3` is fine;
-  `2,junk`, `-1` or an empty slot is rejected outright and nothing is
-  written, rather than partially applied as it used to be. A blocker
+  `2,junk` and `-1` are rejected outright and nothing is written, rather
+  than partially applied as it used to be. An **empty slot is skipped, not
+  rejected** — `--blocked-by "1,,3"` stores `[1,3]`, so build the list
+  yourself rather than expecting rkb to catch a stray comma. A blocker
   that does not exist yet is still accepted — dependencies may point
   forward. Clear them with `build overwrite <id> blocked_by ""`.
 - **`build edit` appends; `build overwrite` replaces.** Since 2.0.0,
